@@ -42,3 +42,10 @@ A lot of people ask me about this errors loading the vulnerable driver, both are
 On versions after Windows 11 22H2 (22621.819), the certificate for the  has been revoked and the mapper will return a status of STATUS_IMAGE_CERT_REVOKED.
 
 Have Fun!!
+
+## How to use
+
+```shell
+# view logs with dbgview64.exe
+# Visual Studio 2019 + Windows 10 (Release + x64)
+```

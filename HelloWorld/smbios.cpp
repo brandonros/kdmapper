@@ -31,6 +31,11 @@ void Smbios::RandomizeString(char* string)
     const auto length = static_cast<int>(strlen(string));
 
     auto* buffer = static_cast<char*>(ExAllocatePoolWithTag(NonPagedPool, length, POOL_TAG));
+    if (!buffer) {
+        DbgPrintEx(0, 0, "ExAllocatePoolWithTag failed\n");
+        return;
+    }
+
     Utils::RandomText(buffer, length);
     buffer[length] = '\0';
 
@@ -38,8 +43,6 @@ void Smbios::RandomizeString(char* string)
 
     ExFreePool(buffer);
 }
-
-#define PRODUCT_NAME "PRODUCT\0"
 
 /**
  * \brief Modify information in the table of given header
@@ -58,14 +61,12 @@ NTSTATUS Smbios::ProcessTable(SMBIOS_HEADER* header)
         auto* type0 = reinterpret_cast<SMBIOS_TYPE0*>(header);
         auto* vendor = GetString(header, type0->Vendor);
         DbgPrintEx(0, 0, "header->Type = %d vendor = %s\n", header->Type, vendor);
-        /*RandomizeString(vendor); */
     } else if (header->Type == 1)
     {
         DbgPrintEx(0, 0, "patching header->Type = %d\n", header->Type);
         auto* type1 = reinterpret_cast<SMBIOS_TYPE1*>(header);
         auto* manufacturer = GetString(header, type1->Manufacturer);
         auto* productName = GetString(header, type1->ProductName);
-        //memcpy((void*)type1->ProductName, PRODUCT_NAME, strlen(PRODUCT_NAME) + 1);
         auto* serialNumber = GetString(header, type1->SerialNumber);
         DbgPrintEx(0, 0, "header->Type = %d manufacturer = %s productName = %s serialNumber = %s\n", header->Type, manufacturer, productName, serialNumber);
     } else if (header->Type == 2)
@@ -74,9 +75,10 @@ NTSTATUS Smbios::ProcessTable(SMBIOS_HEADER* header)
         auto* type2 = reinterpret_cast<SMBIOS_TYPE2*>(header);
         auto* manufacturer = GetString(header, type2->Manufacturer);
         auto* productName = GetString(header, type2->ProductName);
-        //memcpy((void*)type2->ProductName, PRODUCT_NAME, strlen(PRODUCT_NAME) + 1);
         auto* serialNumber = GetString(header, type2->SerialNumber);
+        //productName[0] = 'L';
         DbgPrintEx(0, 0, "header->Type = %d manufacturer = %s productName = %s serialNumber = %s\n", header->Type, manufacturer, productName, serialNumber);
+        DbgPrintEx(0, 0, "header->Type = %d productName = %p type2->ProductName = %p\n", header->Type, productName, type2->ProductName);
     } else if (header->Type == 3)
     {
         DbgPrintEx(0, 0, "patching header->Type = %d\n", header->Type);
@@ -205,7 +207,6 @@ NTSTATUS Smbios::ChangeSmbiosSerials()
     }
 
     DbgPrintEx(0, 0, "physicalAddress = %p\n", physicalAddress);
-    DbgPrintEx(0, 0, "*physicalAddress = %p\n", *physicalAddress);
 
     auto* sizeScan = Utils::FindPatternImage(base, "\x8B\x1D\x00\x00\x00\x00\x48\x8B\xD0\x44\x8B\xC3\x48\x8B\xCD\xE8\x00\x00\x00\x00\x8B\xD3\x48\x8B", "xx????xxxxxxxxxx????xxxx");  // WmipFindSMBiosStructure -> WmipSMBiosTableLength
     if (!sizeScan)

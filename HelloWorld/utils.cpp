@@ -118,6 +118,30 @@ PVOID Utils::FindPatternImage(PVOID base, const char* pattern, const char* mask)
 	return match;
 }
 
+PVOID Utils::FindPatternInit(PVOID base, const char* pattern, const char* mask)
+{
+	PVOID match = nullptr;
+
+
+	auto* headers = reinterpret_cast<PIMAGE_NT_HEADERS>(static_cast<char*>(base) + static_cast<PIMAGE_DOS_HEADER>(base)->e_lfanew);
+	auto* sections = IMAGE_FIRST_SECTION(headers);
+
+
+	for (auto i = 0; i < headers->FileHeader.NumberOfSections; ++i)
+	{
+		auto* section = &sections[i];
+		if ('TINI' == *reinterpret_cast<PINT>(section->Name)) // INIT flipped for endian?
+		{
+			match = FindPattern(static_cast<char*>(base) + section->VirtualAddress, section->Misc.VirtualSize, pattern, mask);
+			if (match)
+				break;
+		}
+	}
+
+
+	return match;
+}
+
 
 /**
  * \brief Generate pseudo-random text into given buffer
